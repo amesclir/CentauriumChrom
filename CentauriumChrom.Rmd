@@ -1,0 +1,86 @@
+---
+title: "CentauriumChrom"
+author: "Marcial Escudero"
+date: "8/9/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#library("devtools")
+#devtools::install_github("roszenil/chromploid")
+library("chromploid")
+library("geiger")
+library("nloptr")
+
+mydata <- read.csv("Centaurium input_AncestralAreas.csv")
+mydata
+mydata <- mydata[match(mydata[,1], mytree$tip.label),]
+
+mydata1 <- mydata[,2:3]
+rownames(mydata1) <- mydata[,1]
+mydata1
+mysample <- bichrom_dataset(mydata1, size = 28, state.0 = "0", state.1 = "1")
+mytree <- read.tree("Centaurium.tree")
+mytree$tip.label
+
+x.0 <- log(c(0.12, 0.001, 0.25, 0.002, 0.036, 0.006, 0.04, 0.02,
+1.792317852, 1.57e-14))
+# value where the optimization algorithm is going to start. A
+# vector of 10 values for the parameters in log scale
+
+model.args <- list(size = 28)
+optimization.bichrom <- bichrom_optim(phy.tree = mytree, tip.values = mysample,
+model = "bichrom", model.args = model.args, starting.val = x.0,
+root.dist = NULL)
+
+print(optimization.bichrom)
+
+
+x.0 <- log(c(0.12, 0.001, 0.25, 0.002, 0.01, 0.04, 0.02, 1.792317852,
+1.57e-14))
+# Value where the optimization algorithm is going to start. A
+# vector of 9 values for the parameters in log scale. The
+# value of the hypothesis here is rho=0.010
+
+model.args = list(size = 28, equal.param = c("rh0", "rho1"),
+location.par = 5)
+# Q.ARGS is a list that has all the arguments included in
+# Q_reducedbichrom that are not the parameters size= maximum
+# number of haploid chromosome numbers to consider in your
+# sample, equal.params=which parameters are equal based on
+# the hypothesis H0, location.par is the position in the
+# vector where rho value appears
+
+optimization.reducedbichrom <- bichrom_optim(phy.tree = mytree,
+tip.values = mysample, model = "reducedbichrom", model.args = model.args,
+starting.val = x.0, root.dist = NULL)
+
+print(optimization.reducedbichrom)
+
+#Maybe it is demipolyploidy
+x.0 <- log(c(0.12, 0.001, 0.25, 0.002, 0.036, 0.006, 0.04, 0.02,
+1.792317852))
+model.args = list(size = 28, equal.param = c("epsilon0", "epsion1"),
+location.par = 9)
+optimization.reducedbichrom2 <- bichrom_optim(phy.tree = mytree,
+tip.values = mysample, model = "reducedbichrom", model.args = model.args,
+starting.val = x.0, root.dist = NULL)
+
+rownames(optimization.reducedbichrom2) <- c("lambda0", "lambda1", "mu0", "mu1", "rho0", "rho1", "q01", "q10", "epsilon", "nloglike", "convergencestatus")
+print(optimization.reducedbichrom2)
+
+
+neglog.red <- optimization.reducedbichrom$results[10]
+neglog.full <- optimization.bichrom$results[11]
+alpha <- 0.05
+D = 2 * (neglog.red - neglog.full)
+p.value <- pchisq(D, lower.tail = FALSE, df = 1)
+if (p.value > 0.05) {
+reject <- 0
+} else {
+reject <- 1
+}
+
+```
