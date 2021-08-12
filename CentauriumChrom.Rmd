@@ -84,3 +84,12 @@ reject <- 1
 }
 
 ```
+
+Plotting some results from ChromEvol 1.0
+```{r}
+library(ape)
+myChromEvol <- read.ce("/home/amesclir/Downloads/centauriumDEF/OUT/CONST_RATE_DEMI_EST")
+plot.anc(myChromEvol)
+
+```
+
